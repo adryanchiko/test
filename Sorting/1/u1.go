@@ -22,7 +22,7 @@ func main() {
 		if v > biggest {
 			biggest = v
 		}
-	}
+	}	
 
 	for i := 0; i < biggest; i++ {
 		for j := 0; j < len(y); j++ {

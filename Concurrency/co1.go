@@ -12,7 +12,19 @@ import (
 	"os"
 )
 
-type Wilayah struct {
+type Provinsi struct {
+	KodeWilayah    string `json:"kode_wilayah"`
+	Nama           string `json:"nama"`
+	MstKodeWilayah string `json:"mst_kode_wilayah"`
+}
+
+type Kabukota struct {
+	KodeWilayah    string `json:"kode_wilayah"`
+	Nama           string `json:"nama"`
+	MstKodeWilayah string `json:"mst_kode_wilayah"`
+}
+
+type Museum struct {
     MuseumID          string      `json:"museum_id"`
     KodePengelolaan   string      `json:"kode_pengelolaan"`
     Nama              string      `json:"nama"`
@@ -35,12 +47,8 @@ type Wilayah struct {
     StatusKepemilikan interface{} `json:"status_kepemilikan"`
 }
 
-var path string
-
-func main() {
-
-	url := "http://jendela.data.kemdikbud.go.id/api/index.php/CcariMuseum/searchGET?kode_kab_kota=016200"
-
+func findProv() {
+	url := "http://jendela.data.kemdikbud.go.id/api/index.php/CWilayah/wilayahGET"
 	spaceClient := http.Client{
 		Timeout: time.Second * 60, // Maximum of 1 Minute
 	}
@@ -65,7 +73,85 @@ func main() {
     body = bytes.TrimPrefix(body, []byte("\xef\xbb\xbf"))
 
     resp := struct {
-		Data []Wilayah `json:"data"`
+		Data []Provinsi `json:"data"`
+	}{}
+    
+	jerr := json.Unmarshal(body, &resp)
+	if jerr != nil {
+		fmt.Println("error:", jerr)
+	}
+
+	for _,d := range resp.Data {
+		findKabukota(d.KodeWilayah)
+	}
+}
+
+func findKabukota(kodewil string) {
+	url := "http://jendela.data.kemdikbud.go.id/api/index.php/CWilayah/wilayahGET?mst_kode_wilayah="+kodewil
+	spaceClient := http.Client{
+		Timeout: time.Second * 60, // Maximum of 1 Minute
+	}
+
+    //Build Request
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	req.Header.Set("User-Agent", "spacecount-tutorial")
+
+	res, getErr := spaceClient.Do(req)
+	if getErr != nil {
+		log.Fatal(getErr)
+	}
+
+	body, readErr := ioutil.ReadAll(res.Body)
+	if readErr != nil {
+		log.Fatal(readErr)
+    }
+    body = bytes.TrimPrefix(body, []byte("\xef\xbb\xbf"))
+
+    resp := struct {
+		Data []Kabukota `json:"data"`
+	}{}
+    
+	jerr := json.Unmarshal(body, &resp)
+	if jerr != nil {
+		fmt.Println("error:", jerr)
+	}
+
+	for _,d := range resp.Data {
+		findMuseum(d.KodeWilayah)
+	}
+}
+
+func findMuseum(kodewil string) {
+	url := "http://jendela.data.kemdikbud.go.id/api/index.php/CcariMuseum/searchGET?kode_kab_kota="+kodewil
+	spaceClient := http.Client{
+		Timeout: time.Second * 60, // Maximum of 1 Minute
+	}
+
+    //Build Request
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	req.Header.Set("User-Agent", "spacecount-tutorial")
+
+	res, getErr := spaceClient.Do(req)
+	if getErr != nil {
+		log.Fatal(getErr)
+	}
+
+	body, readErr := ioutil.ReadAll(res.Body)
+	if readErr != nil {
+		log.Fatal(readErr)
+    }
+    body = bytes.TrimPrefix(body, []byte("\xef\xbb\xbf"))
+
+    resp := struct {
+		Data []Museum `json:"data"`
 	}{}
     
 	jerr := json.Unmarshal(body, &resp)
@@ -83,6 +169,13 @@ func main() {
 			if err != nil {
 				fmt.Println(err)
 			}
+			w := csv.NewWriter(f)
+			var record []string
+			record = append(record, "Museum ID", "Kode Pengelolaan", "Nama", "SDM", "Alamat", "Desa/Kelurahan",
+			"Kecamatan", "Kabupaten/Kota", "Propinsi", "Lintang", "Bujur", "Koleksi", "Sumber Dana", "Pengelola",
+			"Tipe", "Standar", "Tahun Berdiri", "Bangunan", "Luas Tanah")
+			w.Write(record)
+			w.Flush()
 		} else {
 			f, err = os.OpenFile("./"+d.KabupatenKota+".csv", os.O_WRONLY|os.O_APPEND, 0644)
 			if err != nil {
@@ -93,30 +186,35 @@ func main() {
 		
 		w := csv.NewWriter(f)
 		var record []string
-		record = append(record, "Museum ID : "+d.MuseumID+"\n")
-		record = append(record, "Kode Pengelolaan : "+d.KodePengelolaan+"\n")
-		record = append(record, "Nama : "+d.Nama+"\n")
-		record = append(record, "SDM : "+d.Sdm+"\n")
-		record = append(record, "Alamat : "+d.AlamatJalan+"\n")
-		record = append(record, "Desa/Kelurahan : "+d.DesaKelurahan+"\n")
-		record = append(record, "Kecamatan : "+d.Kecamatan+"\n")
-		record = append(record, "Kabupaten/Kota : "+d.KabupatenKota+"\n")
-		record = append(record, "Propinsi : "+d.Propinsi+"\n")
-		record = append(record, "Lintang : "+d.Lintang+"\n")
-		record = append(record, "Bujur : "+d.Bujur+"\n")
-		record = append(record, "Koleksi : "+d.Koleksi+"\n")
-		record = append(record, "Sumber Dana : "+d.SumberDana+"\n")
-		record = append(record, "Pengelola : "+d.Pengelola+"\n")
-		record = append(record, "Tipe : "+d.Tipe+"\n")
-		record = append(record, "Standar : "+d.Standar+"\n")
-		record = append(record, "Tahun Berdiri : "+d.TahunBerdiri+"\n")
-		record = append(record, "Bangunan : "+d.Bangunan+"\n")
-		record = append(record, "Luas Tanah : "+d.LuasTanah+"\n")
-		record = append(record, "-----------------------------------------------------------------------")
+		record = append(record, d.MuseumID)
+		record = append(record, d.KodePengelolaan)
+		record = append(record, d.Nama)
+		record = append(record, d.Sdm)
+		record = append(record, d.AlamatJalan)
+		record = append(record, d.DesaKelurahan)
+		record = append(record, d.Kecamatan)
+		record = append(record, d.KabupatenKota)
+		record = append(record, d.Propinsi)
+		record = append(record, d.Lintang)
+		record = append(record, d.Bujur)
+		record = append(record, d.Koleksi)
+		record = append(record, d.SumberDana)
+		record = append(record, d.Pengelola)
+		record = append(record, d.Tipe)
+		record = append(record, d.Standar)
+		record = append(record, d.TahunBerdiri)
+		record = append(record, d.Bangunan)
+		record = append(record, d.LuasTanah)
 		w.Write(record)
 		w.Flush()
 
 		kabkota = d.KabupatenKota
 	}
+}
+
+func main() {
+
+	//Prov -> Kab/Kota -> Museum
+	findProv()
 	
 }

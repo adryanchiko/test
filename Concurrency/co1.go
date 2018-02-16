@@ -4,10 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"encoding/csv"
 	"log"
 	"net/http"
     "time"
-    "bytes"
+	"bytes"
+	"os"
 )
 
 type Wilayah struct {
@@ -32,6 +34,8 @@ type Wilayah struct {
     LuasTanah         string      `json:"luas_tanah"`
     StatusKepemilikan interface{} `json:"status_kepemilikan"`
 }
+
+var path string
 
 func main() {
 
@@ -61,16 +65,58 @@ func main() {
     body = bytes.TrimPrefix(body, []byte("\xef\xbb\xbf"))
 
     resp := struct {
-        Data []Wilayah `json:"data"`
-    }{}
+		Data []Wilayah `json:"data"`
+	}{}
     
 	jerr := json.Unmarshal(body, &resp)
 	if jerr != nil {
 		fmt.Println("error:", jerr)
 	}
 
-	for _, w := range resp.Data {
-		fmt.Println("Kode Wil:", w.Nama)
-		fmt.Println("------------------")
+	var kabkota string
+	
+	for _,d := range resp.Data {
+		var f *os.File
+		var err error
+		if kabkota != d.KabupatenKota {
+			f, err = os.Create("./"+d.KabupatenKota+".csv")
+			if err != nil {
+				fmt.Println(err)
+			}
+		} else {
+			f, err = os.OpenFile("./"+d.KabupatenKota+".csv", os.O_WRONLY|os.O_APPEND, 0644)
+			if err != nil {
+				log.Fatalf("failed opening file: %s", err)
+			}
+			defer f.Close()
+		}
+		
+		w := csv.NewWriter(f)
+		var record []string
+		record = append(record, "Museum ID : "+d.MuseumID+"\n")
+		record = append(record, "Kode Pengelolaan : "+d.KodePengelolaan+"\n")
+		record = append(record, "Nama : "+d.Nama+"\n")
+		record = append(record, "SDM : "+d.Sdm+"\n")
+		record = append(record, "Alamat : "+d.AlamatJalan+"\n")
+		record = append(record, "Desa/Kelurahan : "+d.DesaKelurahan+"\n")
+		record = append(record, "Kecamatan : "+d.Kecamatan+"\n")
+		record = append(record, "Kabupaten/Kota : "+d.KabupatenKota+"\n")
+		record = append(record, "Propinsi : "+d.Propinsi+"\n")
+		record = append(record, "Lintang : "+d.Lintang+"\n")
+		record = append(record, "Bujur : "+d.Bujur+"\n")
+		record = append(record, "Koleksi : "+d.Koleksi+"\n")
+		record = append(record, "Sumber Dana : "+d.SumberDana+"\n")
+		record = append(record, "Pengelola : "+d.Pengelola+"\n")
+		record = append(record, "Tipe : "+d.Tipe+"\n")
+		record = append(record, "Standar : "+d.Standar+"\n")
+		record = append(record, "Tahun Berdiri : "+d.TahunBerdiri+"\n")
+		record = append(record, "Bangunan : "+d.Bangunan+"\n")
+		record = append(record, "Luas Tanah : "+d.LuasTanah+"\n")
+		record = append(record, "-----------------------------------------------------------------------")
+		w.Write(record)
+		w.Flush()
+
+		kabkota = d.KabupatenKota
 	}
+	
 }

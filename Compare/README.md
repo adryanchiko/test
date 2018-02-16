@@ -1,0 +1,3 @@
+Scan folder source dan target untuk melihat isi masing-masing direktori, kemudian hilangkan root direktorinya yaitu source dan target. Setelah root direktori dihapus maka bandingkan masing-masing file dengan fungsi Delete atau New untuk melihat file-file mana yang terhapus dan Baru. Apabila file ada dikedua direktori tersebut maka cek dengan fungsi Modified untuk melihat besar file dalam Byte untuk dapat menyimpulkan file telah di Modif atau belum.
+
+Dibuatnya sistem ini untuk mengecek apakah dalam struktur database atau data database berubah. Juga dapat digunakan untuk cek log suatu database.
